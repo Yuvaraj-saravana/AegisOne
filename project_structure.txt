@@ -1,0 +1,26 @@
+SecurityOps Unified - Project Structure Directory Tree
+======================================================
+
+CYBERSEC/
+├── backend/
+│   ├── venv/                   # Python Virtual Environment
+│   ├── main.py                 # FastAPI Application entry point
+│   ├── models.py               # Database Models (SQLAlchemy)
+│   └── requirements.txt        # Backend python dependencies
+├── frontend/
+│   ├── node_modules/           # Node.js dependencies
+│   ├── src/
+│   │   ├── assets/             # Assets and images
+│   │   ├── App.css
+│   │   ├── App.jsx             # Core React Component (Tailwind dashboard skeleton)
+│   │   ├── index.css           # Main CSS entry point (configured with Tailwind v4)
+│   │   └── main.jsx            # React entry point script
+│   ├── index.html              # Main HTML wrapper
+│   ├── package.json            # Node project configuration
+│   ├── vite.config.js          # Vite config (configured with Tailwind plugin)
+│   └── eslint.config.js        # ESLint configuration
+├── skills/
+│   └── cybersecurity-project.md # Project documentation and plans
+├── docker-compose.yml          # Container configuration (Postgres, Redis)
+├── implementation_plan.txt     # Foundation setup plan
+└── project_structure.txt       # This project structure file
