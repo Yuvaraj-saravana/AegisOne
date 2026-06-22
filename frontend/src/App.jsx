@@ -14,11 +14,20 @@ const IconNetwork = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" hei
 const IconPalette = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5"></circle><circle cx="17.5" cy="10.5" r=".5"></circle><circle cx="8.5" cy="7.5" r=".5"></circle><circle cx="6.5" cy="12.5" r=".5"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path></svg>;
 const IconX = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
 const IconLayoutList = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="14" width="7" height="7"></rect><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>;
+const IconLogOut = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>;
+const IconLock = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>;
 
 function App() {
   const [healthStatus, setHealthStatus] = useState('Checking');
   const [isCustomizing, setIsCustomizing] = useState(false);
   
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
+  
+  // Form fields state
+  const [authForm, setAuthForm] = useState({ email: '', password: '', name: '' });
+
   // Customization State
   const [config, setConfig] = useState({
     mode: 'dark', // 'dark' | 'light'
@@ -60,15 +69,223 @@ function App() {
   };
 
   const primaryColors = {
-    cyan: { text: 'text-cyan-400', bgFade: 'bg-cyan-500/10', border: 'border-cyan-500/20', from: 'from-cyan-400', to: 'to-blue-600', glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]', ring: 'focus:ring-cyan-500/50', selection: 'selection:bg-cyan-500/30 selection:text-cyan-100', dot: 'bg-cyan-500', insetShadow: 'shadow-[inset_4px_0_0_rgba(34,211,238,1)]' },
-    emerald: { text: 'text-emerald-400', bgFade: 'bg-emerald-500/10', border: 'border-emerald-500/20', from: 'from-emerald-400', to: 'to-teal-600', glow: 'shadow-[0_0_15px_rgba(16,185,129,0.4)]', ring: 'focus:ring-emerald-500/50', selection: 'selection:bg-emerald-500/30 selection:text-emerald-100', dot: 'bg-emerald-500', insetShadow: 'shadow-[inset_4px_0_0_rgba(16,185,129,1)]' },
-    purple: { text: 'text-purple-400', bgFade: 'bg-purple-500/10', border: 'border-purple-500/20', from: 'from-purple-400', to: 'to-indigo-600', glow: 'shadow-[0_0_15px_rgba(168,85,247,0.4)]', ring: 'focus:ring-purple-500/50', selection: 'selection:bg-purple-500/30 selection:text-purple-100', dot: 'bg-purple-500', insetShadow: 'shadow-[inset_4px_0_0_rgba(168,85,247,1)]' },
-    amber: { text: 'text-amber-400', bgFade: 'bg-amber-500/10', border: 'border-amber-500/20', from: 'from-amber-400', to: 'to-orange-600', glow: 'shadow-[0_0_15px_rgba(245,158,11,0.4)]', ring: 'focus:ring-amber-500/50', selection: 'selection:bg-amber-500/30 selection:text-amber-100', dot: 'bg-amber-500', insetShadow: 'shadow-[inset_4px_0_0_rgba(245,158,11,1)]' }
+    cyan: { text: 'text-cyan-400', bgFade: 'bg-cyan-500/10', border: 'border-cyan-500/20', borderSolid: 'border-cyan-500', from: 'from-cyan-400', to: 'to-blue-600', glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]', ring: 'focus:ring-cyan-500/50', selection: 'selection:bg-cyan-500/30 selection:text-cyan-100', dot: 'bg-cyan-500', insetShadow: 'shadow-[inset_4px_0_0_rgba(34,211,238,1)]' },
+    emerald: { text: 'text-emerald-400', bgFade: 'bg-emerald-500/10', border: 'border-emerald-500/20', borderSolid: 'border-emerald-500', from: 'from-emerald-400', to: 'to-teal-600', glow: 'shadow-[0_0_15px_rgba(16,185,129,0.4)]', ring: 'focus:ring-emerald-500/50', selection: 'selection:bg-emerald-500/30 selection:text-emerald-100', dot: 'bg-emerald-500', insetShadow: 'shadow-[inset_4px_0_0_rgba(16,185,129,1)]' },
+    purple: { text: 'text-purple-400', bgFade: 'bg-purple-500/10', border: 'border-purple-500/20', borderSolid: 'border-purple-500', from: 'from-purple-400', to: 'to-indigo-600', glow: 'shadow-[0_0_15px_rgba(168,85,247,0.4)]', ring: 'focus:ring-purple-500/50', selection: 'selection:bg-purple-500/30 selection:text-purple-100', dot: 'bg-purple-500', insetShadow: 'shadow-[inset_4px_0_0_rgba(168,85,247,1)]' },
+    amber: { text: 'text-amber-400', bgFade: 'bg-amber-500/10', border: 'border-amber-500/20', borderSolid: 'border-amber-500', from: 'from-amber-400', to: 'to-orange-600', glow: 'shadow-[0_0_15px_rgba(245,158,11,0.4)]', ring: 'focus:ring-amber-500/50', selection: 'selection:bg-amber-500/30 selection:text-amber-100', dot: 'bg-amber-500', insetShadow: 'shadow-[inset_4px_0_0_rgba(245,158,11,1)]' }
   };
 
   const curTheme = themes[config.mode];
   const curColor = primaryColors[config.primary];
 
+  const handleAuthSubmit = (e) => {
+    e.preventDefault();
+    // Simulate auth action
+    setTimeout(() => {
+      setIsAuthenticated(true);
+    }, 500);
+  };
+
+  // -------------------------------------------------------------
+  // AUTHENTICATION SCREEN
+  // -------------------------------------------------------------
+  if (!isAuthenticated) {
+    return (
+      <div className={`flex min-h-screen w-full ${curTheme.bg} ${curTheme.text} font-sans overflow-hidden ${curColor.selection} transition-colors duration-500 relative`}>
+        
+        {/* Dynamic Background Glow */}
+        {config.mode === 'dark' && (
+          <div className={`absolute top-[20%] left-[50%] -translate-x-1/2 w-[800px] h-[800px] ${curColor.dot}/10 rounded-full blur-[150px] pointer-events-none transition-colors duration-700`}></div>
+        )}
+
+        <div className="flex w-full z-10">
+          {/* Left Branding Panel */}
+          <div className={`hidden lg:flex w-1/2 relative overflow-hidden flex-col justify-between p-12 bg-gradient-to-br from-[#0B101E] to-[#151C2C]`}>
+            {/* Visual Abstract Elements */}
+            <div className="absolute right-0 top-0 bottom-0 w-full opacity-10 pointer-events-none" style={{ backgroundImage: `radial-gradient(circle at right, ${config.primary === 'cyan' ? '#06b6d4' : config.primary === 'emerald' ? '#10b981' : config.primary === 'purple' ? '#a855f7' : '#f59e0b'} 1px, transparent 1px)`, backgroundSize: '24px 24px' }}></div>
+            
+            <div className="relative z-10 flex items-center gap-3">
+              <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${curColor.from} ${curColor.to} flex items-center justify-center ${curColor.glow}`}>
+                <span className="text-white"><IconShield /></span>
+              </div>
+              <span className={`text-white font-bold text-2xl tracking-wide`}>Aegis One</span>
+            </div>
+
+            <div className="relative z-10 space-y-6">
+              <div className={`inline-flex px-3 py-1 rounded-full ${curColor.bgFade} ${curColor.border} border text-xs font-semibold ${curColor.text} uppercase tracking-wider`}>
+                Enterprise Security Platform
+              </div>
+              <h1 className="text-5xl font-black text-white leading-tight tracking-tight">
+                Unified protection.<br/>
+                <span className={`text-transparent bg-clip-text bg-gradient-to-r ${curColor.from} ${curColor.to}`}>Total visibility.</span>
+              </h1>
+              <p className="text-slate-400 max-w-md text-lg leading-relaxed">
+                Connect your SOC tools, automate incident response, and gain unparalleled insights into your organization's threat landscape.
+              </p>
+            </div>
+
+            <div className="relative z-10 flex items-center gap-6 text-sm text-slate-500 font-medium">
+              <span>© {new Date().getFullYear()} Aegis One</span>
+              <span>•</span>
+              <span className="hover:text-slate-300 cursor-pointer transition-colors">Privacy</span>
+              <span>•</span>
+              <span className="hover:text-slate-300 cursor-pointer transition-colors">Terms</span>
+            </div>
+          </div>
+
+          {/* Right Form Panel */}
+          <div className={`w-full lg:w-1/2 flex items-center justify-center p-8 ${curTheme.bg} transition-colors duration-300`}>
+            
+            {/* Customizer Button for Auth Screen */}
+            <div className="absolute top-6 right-6 z-50">
+              <button 
+                onClick={() => setIsCustomizing(true)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg ${curTheme.surface} border ${curTheme.border} ${curTheme.textMuted} hover:${curColor.text} transition-all`}
+                title="Customize UI Theme"
+              >
+                <IconPalette /> <span className="text-xs font-semibold">Theme</span>
+              </button>
+            </div>
+
+            <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+              
+              <div className="text-center space-y-2">
+                <h2 className={`text-3xl font-extrabold ${curTheme.heading} tracking-tight`}>
+                  {authMode === 'login' ? 'Welcome back' : 'Create an account'}
+                </h2>
+                <p className={`${curTheme.textMuted} text-sm`}>
+                  {authMode === 'login' 
+                    ? 'Enter your credentials to access the SOC dashboard.' 
+                    : 'Register your organization to begin utilizing Aegis One.'}
+                </p>
+              </div>
+
+              <form onSubmit={handleAuthSubmit} className={`p-8 rounded-2xl ${curTheme.surface} border ${curTheme.border} shadow-2xl space-y-6 backdrop-blur-xl`}>
+                
+                {authMode === 'register' && (
+                  <div className="space-y-2">
+                    <label className={`block text-xs font-bold ${curTheme.textMuted} uppercase tracking-wider`}>Full Name</label>
+                    <div className="relative">
+                      <span className={`absolute inset-y-0 left-0 pl-3 flex items-center ${curTheme.textMuted}`}>
+                        <IconUser />
+                      </span>
+                      <input 
+                        type="text" required
+                        placeholder="John Doe"
+                        value={authForm.name}
+                        onChange={(e) => setAuthForm({...authForm, name: e.target.value})}
+                        className={`w-full ${curTheme.input} border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none ${curTheme.borderHover} focus:border-${config.primary}-500 focus:ring-1 ${curColor.ring} transition-all`}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className={`block text-xs font-bold ${curTheme.textMuted} uppercase tracking-wider`}>Email Address</label>
+                  <div className="relative">
+                    <span className={`absolute inset-y-0 left-0 pl-3 flex items-center ${curTheme.textMuted}`}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    </span>
+                    <input 
+                      type="email" required
+                      placeholder="admin@organization.com"
+                      value={authForm.email}
+                      onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
+                      className={`w-full ${curTheme.input} border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none ${curTheme.borderHover} focus:border-${config.primary}-500 focus:ring-1 ${curColor.ring} transition-all`}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className={`block text-xs font-bold ${curTheme.textMuted} uppercase tracking-wider`}>Password</label>
+                    {authMode === 'login' && (
+                      <a href="#" className={`text-xs font-semibold ${curColor.text} hover:underline`}>Forgot password?</a>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <span className={`absolute inset-y-0 left-0 pl-3 flex items-center ${curTheme.textMuted}`}>
+                      <IconLock />
+                    </span>
+                    <input 
+                      type="password" required
+                      placeholder="••••••••••••"
+                      value={authForm.password}
+                      onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
+                      className={`w-full ${curTheme.input} border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none ${curTheme.borderHover} focus:border-${config.primary}-500 focus:ring-1 ${curColor.ring} transition-all`}
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit"
+                  className={`w-full flex justify-center items-center gap-2 py-3 rounded-xl font-bold text-white shadow-lg transition-all active:scale-[0.98] ${
+                    config.primary === 'cyan' ? 'bg-cyan-500 hover:bg-cyan-400 shadow-cyan-500/25' :
+                    config.primary === 'emerald' ? 'bg-emerald-500 hover:bg-emerald-400 shadow-emerald-500/25' :
+                    config.primary === 'purple' ? 'bg-purple-500 hover:bg-purple-400 shadow-purple-500/25' :
+                    'bg-amber-500 hover:bg-amber-400 shadow-amber-500/25'
+                  }`}
+                >
+                  {authMode === 'login' ? 'Sign In to Dashboard' : 'Register Account'}
+                </button>
+              </form>
+
+              <div className="text-center">
+                <p className={`${curTheme.textMuted} text-sm font-medium`}>
+                  {authMode === 'login' ? "Don't have an account?" : "Already have an account?"}
+                  <button 
+                    type="button"
+                    onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
+                    className={`ml-2 font-bold ${curColor.text} hover:underline transition-all`}
+                  >
+                    {authMode === 'login' ? 'Register' : 'Sign in'}
+                  </button>
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        {/* REUSED CUSTOMIZATION DRAWER FOR AUTH SCREEN */}
+        {isCustomizing && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setIsCustomizing(false)}></div>
+            <div className={`relative w-80 h-full ${curTheme.surfaceSolid} border-l ${curTheme.border} shadow-2xl flex flex-col animate-in slide-in-from-right duration-300`}>
+              <div className={`p-5 flex items-center justify-between border-b ${curTheme.border}`}>
+                <h3 className={`font-bold ${curTheme.heading} flex items-center gap-2`}><IconPalette /> Theme Customization</h3>
+                <button onClick={() => setIsCustomizing(false)} className={`${curTheme.textMuted} hover:${curTheme.heading} transition-colors`}><IconX /></button>
+              </div>
+              <div className="p-6 overflow-y-auto flex-1 space-y-8">
+                {/* Theme Mode */}
+                <div className="space-y-3">
+                  <label className={`text-xs font-semibold ${curTheme.textMuted} uppercase tracking-wider`}>Mode</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {['dark', 'light'].map((m) => (
+                      <button key={m} onClick={() => setConfig({...config, mode: m})} className={`py-2 px-3 rounded-lg border text-sm font-medium capitalize transition-all ${config.mode === m ? `${curColor.bgFade} ${curColor.borderSolid} ${curColor.text}` : `${curTheme.border} ${curTheme.text} hover:${curTheme.surface}`}`}>{m}</button>
+                    ))}
+                  </div>
+                </div>
+                {/* Primary Color */}
+                <div className="space-y-3">
+                  <label className={`text-xs font-semibold ${curTheme.textMuted} uppercase tracking-wider`}>Accent Color</label>
+                  <div className="grid grid-cols-4 gap-3">
+                    {Object.keys(primaryColors).map((colorKey) => (
+                      <button key={colorKey} onClick={() => setConfig({...config, primary: colorKey})} className={`h-10 rounded-lg border flex items-center justify-center transition-all ${config.primary === colorKey ? `${primaryColors[colorKey].borderSolid} ring-2 ring-${colorKey}-500/30 scale-110` : `${curTheme.border} hover:scale-105`}`}><div className={`h-4 w-4 rounded-full bg-${colorKey}-500`}></div></button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // -------------------------------------------------------------
+  // DASHBOARD SCREEN (Main App)
+  // -------------------------------------------------------------
   const navItems = [
     { icon: <IconDashboard />, label: 'Dashboard', active: true },
     { icon: <IconAlertTriangle />, label: 'Incidents' },
@@ -99,7 +316,7 @@ function App() {
                 <div className={`h-8 w-8 rounded-lg bg-gradient-to-br ${curColor.from} ${curColor.to} flex items-center justify-center ${curColor.glow}`}>
                   <span className="text-white"><IconShield /></span>
                 </div>
-                <span className={`${curTheme.heading} font-bold text-lg tracking-wide`}>SecurityOps</span>
+                <span className={`${curTheme.heading} font-bold text-lg tracking-wide`}>Aegis One</span>
               </div>
             </div>
 
@@ -150,7 +367,7 @@ function App() {
                   <div className={`h-8 w-8 rounded-lg bg-gradient-to-br ${curColor.from} ${curColor.to} flex items-center justify-center ${curColor.glow}`}>
                     <span className="text-white"><IconShield /></span>
                   </div>
-                  <span className={`${curTheme.heading} font-bold text-lg tracking-wide`}>SecurityOps</span>
+                  <span className={`${curTheme.heading} font-bold text-lg tracking-wide`}>Aegis One</span>
                 </div>
                 <nav className="flex items-center gap-2">
                   {navItems.map((item, i) => (
@@ -200,9 +417,25 @@ function App() {
                 <IconPalette />
               </button>
 
-              <button className={`flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 border ${curTheme.border} text-white hover:opacity-90 transition-all`}>
-                <IconUser />
-              </button>
+              <div className="relative group">
+                <button className={`flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 border ${curTheme.border} text-white hover:opacity-90 transition-all`}>
+                  <IconUser />
+                </button>
+                {/* Logout Tooltip/Dropdown mock */}
+                <div className={`absolute right-0 top-full mt-2 w-48 ${curTheme.surfaceSolid} border ${curTheme.border} rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 p-2 z-50`}>
+                  <div className={`px-3 py-2 border-b ${curTheme.border} mb-1`}>
+                    <p className={`text-sm font-bold ${curTheme.heading}`}>Admin User</p>
+                    <p className={`text-xs ${curTheme.textMuted}`}>admin@organization.com</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsAuthenticated(false)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-rose-500 hover:bg-rose-500/10 transition-colors`}
+                  >
+                    <IconLogOut /> Sign out
+                  </button>
+                </div>
+              </div>
+
             </div>
           </header>
 
@@ -350,7 +583,7 @@ function App() {
         </div>
       </div>
 
-      {/* CUSTOMIZATION DRAWER */}
+      {/* CUSTOMIZATION DRAWER FOR DASHBOARD */}
       {isCustomizing && (
         <div className="fixed inset-0 z-50 flex justify-end">
           {/* Backdrop */}
@@ -382,7 +615,7 @@ function App() {
                       onClick={() => setConfig({...config, mode: m})}
                       className={`py-2 px-3 rounded-lg border text-sm font-medium capitalize transition-all ${
                         config.mode === m 
-                          ? `${curColor.bgFade} ${curColor.border} ${curColor.text}` 
+                          ? `${curColor.bgFade} ${curColor.borderSolid} ${curColor.text}` 
                           : `${curTheme.border} ${curTheme.text} hover:${curTheme.surface}`
                       }`}
                     >
@@ -402,7 +635,7 @@ function App() {
                       onClick={() => setConfig({...config, primary: colorKey})}
                       className={`h-10 rounded-lg border flex items-center justify-center transition-all ${
                         config.primary === colorKey 
-                          ? `border-${colorKey}-500 ring-2 ring-${colorKey}-500/30 scale-110` 
+                          ? `${primaryColors[colorKey].borderSolid} ring-2 ring-${colorKey}-500/30 scale-110` 
                           : `${curTheme.border} hover:scale-105`
                       }`}
                     >
@@ -425,7 +658,7 @@ function App() {
                       onClick={() => setConfig({...config, layout: l.id})}
                       className={`py-3 px-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 transition-all ${
                         config.layout === l.id 
-                          ? `${curColor.bgFade} ${curColor.border} ${curColor.text}` 
+                          ? `${curColor.bgFade} ${curColor.borderSolid} ${curColor.text}` 
                           : `${curTheme.border} ${curTheme.text} hover:${curTheme.surface}`
                       }`}
                     >
