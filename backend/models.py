@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Float, JSON
 from database import Base
 import datetime
 
@@ -26,5 +26,40 @@ class Ticket(Base):
     status = Column(String, default="New")
     assigned_to = Column(String, nullable=True)
     category = Column(String)
+    source = Column(String, default="Manual")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class Vulnerability(Base):
+    __tablename__ = "vulnerabilities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    vuln_id = Column(String, unique=True, index=True)
+    title = Column(String)
+    severity = Column(String)
+    asset = Column(String)
+    status = Column(String, default="Open")
+    exploitability = Column(String)
+    discovered = Column(DateTime, default=datetime.datetime.utcnow)
+    remediation = Column(String)
+    cvss = Column(Float)
+    riskScore = Column(Integer)
+    description = Column(String)
+    remediationNotes = Column(JSON, default=list)
+
+class Threat(Base):
+    __tablename__ = "threats"
+
+    id = Column(Integer, primary_key=True, index=True)
+    threat_id = Column(String, unique=True, index=True)
+    value = Column(String)
+    type = Column(String)
+    severity = Column(String)
+    confidence = Column(String)
+    source = Column(String)
+    status = Column(String, default="Active")
+    tags = Column(JSON, default=list)
+    firstSeen = Column(DateTime, default=datetime.datetime.utcnow)
+    lastSeen = Column(DateTime, default=datetime.datetime.utcnow)
+    enrichment = Column(JSON, default=dict)
+    notes = Column(JSON, default=list)
