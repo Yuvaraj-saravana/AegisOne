@@ -334,6 +334,15 @@ function App() {
       input: 'https://paypal-secure-verification.com/login',
       verdict: 'Malicious',
       score: 95,
+      confidence: 'High',
+      saved: false,
+      reasonTags: ['Lookalike / impersonation domain', 'Login page / credential harvesting pattern', 'Unusual query string structure'],
+      breakdown: {
+        reputation: 40,
+        ssl: 15,
+        redirects: 20,
+        keywords: 20
+      },
       timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
       explanation: 'Lookalike/impersonation domain matching brand keyword (paypal). Domain resolved to non-standard server IP. Missing valid EV certificate.',
       details: {
@@ -354,6 +363,15 @@ function App() {
       input: 'MOCK_QR_INBOUND_SHIPMENT.png',
       verdict: 'Safe',
       score: 12,
+      confidence: 'High',
+      saved: true,
+      reasonTags: ['Standard Intranet Destination'],
+      breakdown: {
+        reputation: 5,
+        ssl: 0,
+        redirects: 5,
+        keywords: 2
+      },
       timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
       explanation: 'Decoded QR payload leads to corporate Intranet portal destination. Standard secure TLS layers validated.',
       details: {
@@ -374,6 +392,15 @@ function App() {
       input: 'https://bit.ly/3x8FD2',
       verdict: 'Suspicious',
       score: 65,
+      confidence: 'Medium',
+      saved: false,
+      reasonTags: ['Shortened URL abuse', 'Suspicious redirect chain', 'New or unknown domain'],
+      breakdown: {
+        reputation: 25,
+        ssl: 5,
+        redirects: 20,
+        keywords: 15
+      },
       timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
       explanation: 'Shortened URL expands to an untrusted file download destination. Requires manual sandbox verification.',
       details: {
@@ -394,6 +421,15 @@ function App() {
       input: 'MOCK_QR_MFA_UPDATE.png',
       verdict: 'Malicious',
       score: 98,
+      confidence: 'High',
+      saved: false,
+      reasonTags: ['QR hidden malicious link', 'Login page / credential harvesting pattern', 'Lookalike / impersonation domain'],
+      breakdown: {
+        reputation: 40,
+        ssl: 18,
+        redirects: 20,
+        keywords: 20
+      },
       timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
       explanation: 'Embedded quishing payload detected. Decoded URL leads to fake Microsoft login page designed for credential harvesting.',
       details: {
@@ -428,6 +464,10 @@ function App() {
             input: targetUrl,
             verdict: 'Malicious',
             score: 94,
+            confidence: 'High',
+            saved: false,
+            reasonTags: ['Lookalike / impersonation domain', 'Login page / credential harvesting pattern'],
+            breakdown: { reputation: 40, ssl: 14, redirects: 20, keywords: 20 },
             timestamp: new Date().toISOString(),
             explanation: 'Highly suspicious lookalike domain pattern detected. The destination contains sensitive financial credentials keywords while resolving to a newly-registered hosting block.',
             details: {
@@ -449,6 +489,10 @@ function App() {
             input: targetUrl,
             verdict: 'Suspicious',
             score: 60,
+            confidence: 'Medium',
+            saved: false,
+            reasonTags: ['Shortened URL abuse', 'Suspicious redirect chain'],
+            breakdown: { reputation: 20, ssl: 10, redirects: 20, keywords: 10 },
             timestamp: new Date().toISOString(),
             explanation: 'Shortened link used to conceal final landing page redirect routing. Expands to external storage folder containing untrusted binaries.',
             details: {
@@ -470,6 +514,10 @@ function App() {
             input: targetUrl,
             verdict: 'Safe',
             score: 4,
+            confidence: 'High',
+            saved: false,
+            reasonTags: ['Known Benign Entity'],
+            breakdown: { reputation: 1, ssl: 0, redirects: 2, keywords: 1 },
             timestamp: new Date().toISOString(),
             explanation: 'Well-known benign enterprise target domain. Fully compliant SSL/TLS certificates and standard redirect structures verified.',
             details: {
@@ -491,6 +539,10 @@ function App() {
             input: targetUrl,
             verdict: 'Needs review',
             score: 45,
+            confidence: 'Low',
+            saved: false,
+            reasonTags: ['New or unknown domain', 'Non-HTTPS or mixed signals'],
+            breakdown: { reputation: 25, ssl: 10, redirects: 5, keywords: 5 },
             timestamp: new Date().toISOString(),
             explanation: 'Neutral or newly registered domain with minimal active reputational rating index. Advise manual inspection in sandbox environments.',
             details: {
@@ -516,6 +568,10 @@ function App() {
             input: qrName,
             verdict: 'Malicious',
             score: 97,
+            confidence: 'High',
+            saved: false,
+            reasonTags: ['QR hidden malicious link', 'Login page / credential harvesting pattern', 'Lookalike / impersonation domain'],
+            breakdown: { reputation: 40, ssl: 17, redirects: 20, keywords: 20 },
             timestamp: new Date().toISOString(),
             explanation: 'Hidden quishing redirect. The decoded payload attempts to force redirection to a clone portal designed for credential harvesting.',
             details: {
@@ -537,6 +593,10 @@ function App() {
             input: qrName,
             verdict: 'Safe',
             score: 8,
+            confidence: 'High',
+            saved: false,
+            reasonTags: ['Standard Intranet Destination'],
+            breakdown: { reputation: 2, ssl: 0, redirects: 3, keywords: 3 },
             timestamp: new Date().toISOString(),
             explanation: 'Decoded QR code matches corporate intranet asset links and standard compliance patterns.',
             details: {
@@ -558,6 +618,59 @@ function App() {
       setLinkGuardHistory(prev => [result, ...prev]);
       setLinkGuardScanning(false);
     }, 1500);
+  };
+
+  const handleUpdateVerdict = (logId, newVerdict, newScore = null, confidence = 'High') => {
+    setLinkGuardHistory(prev => prev.map(item => {
+      if (item.id === logId) {
+        const updated = {
+          ...item,
+          verdict: newVerdict,
+          confidence: confidence,
+          score: newScore !== null ? newScore : (newVerdict === 'Safe' ? 5 : newVerdict === 'Suspicious' ? 45 : newVerdict === 'Needs review' ? 30 : 95)
+        };
+        if (linkGuardResult && linkGuardResult.id === logId) {
+          setLinkGuardResult(updated);
+        }
+        if (linkGuardSelectedHistory && linkGuardSelectedHistory.id === logId) {
+          setLinkGuardSelectedHistory(updated);
+        }
+        return updated;
+      }
+      return item;
+    }));
+  };
+
+  const handleToggleSave = (logId) => {
+    setLinkGuardHistory(prev => prev.map(item => {
+      if (item.id === logId) {
+        const updated = { ...item, saved: !item.saved };
+        if (linkGuardResult && linkGuardResult.id === logId) {
+          setLinkGuardResult(updated);
+        }
+        if (linkGuardSelectedHistory && linkGuardSelectedHistory.id === logId) {
+          setLinkGuardSelectedHistory(updated);
+        }
+        return updated;
+      }
+      return item;
+    }));
+  };
+
+  const handleSaveNotes = (logId, notes) => {
+    setLinkGuardHistory(prev => prev.map(item => {
+      if (item.id === logId) {
+        const updated = { ...item, notes: notes };
+        if (linkGuardResult && linkGuardResult.id === logId) {
+          setLinkGuardResult(updated);
+        }
+        if (linkGuardSelectedHistory && linkGuardSelectedHistory.id === logId) {
+          setLinkGuardSelectedHistory(updated);
+        }
+        return updated;
+      }
+      return item;
+    }));
   };
 
   // Initial Fetch & Health Check
@@ -1638,122 +1751,184 @@ function App() {
                   )}
 
                   {linkGuardResult && (
-                    <div className={`${curTheme.surface} border ${curTheme.border} rounded-2xl p-6 shadow-xl grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom duration-300`}>
-                      
-                      {/* Left Score Gauge */}
-                      <div className="flex flex-col items-center justify-center text-center p-4 border-b lg:border-b-0 lg:border-r border-slate-700/30 gap-3">
-                        <span className={`text-[10px] font-bold ${curTheme.textMuted} uppercase`}>Evaluation Result</span>
-                        
-                        <div className={`h-28 w-28 rounded-full border-[8px] flex flex-col items-center justify-center ${
-                          linkGuardResult.verdict === 'Safe' ? 'border-emerald-500/20 text-emerald-500' :
-                          linkGuardResult.verdict === 'Suspicious' ? 'border-amber-500/20 text-amber-500' :
-                          'border-rose-500/20 text-rose-500'
-                        }`}>
-                          <span className="text-3xl font-black">{linkGuardResult.score}</span>
-                          <span className="text-[8px] text-slate-500 font-bold uppercase">Risk Score</span>
+                    <div className={`${curTheme.surface} border ${curTheme.border} rounded-2xl p-6 shadow-xl space-y-6 animate-in slide-in-from-bottom duration-300`}>
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Left Score Gauge & Confidence Index */}
+                        <div className="flex flex-col items-center justify-center text-center p-4 border-b lg:border-b-0 lg:border-r border-slate-700/30 gap-3">
+                          <span className={`text-[10px] font-bold ${curTheme.textMuted} uppercase`}>Evaluation Result</span>
+                          
+                          <div className={`h-28 w-28 rounded-full border-[8px] flex flex-col items-center justify-center ${
+                            linkGuardResult.verdict === 'Safe' ? 'border-emerald-500/20 text-emerald-500' :
+                            linkGuardResult.verdict === 'Suspicious' ? 'border-amber-500/20 text-amber-500' :
+                            linkGuardResult.verdict === 'Needs review' ? 'border-blue-500/20 text-blue-500' :
+                            'border-rose-500/20 text-rose-500'
+                          }`}>
+                            <span className="text-3xl font-black">{linkGuardResult.score}</span>
+                            <span className="text-[8px] text-slate-500 font-bold uppercase">Risk Score</span>
+                          </div>
+
+                          <div className="flex flex-col gap-1.5 items-center">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wider ${
+                              linkGuardResult.verdict === 'Safe' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                              linkGuardResult.verdict === 'Suspicious' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                              linkGuardResult.verdict === 'Needs review' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                              'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                            }`}>
+                              {linkGuardResult.verdict}
+                            </span>
+                            <div className="flex items-center gap-1 mt-1">
+                              <span className={`text-[10px] ${curTheme.textMuted}`}>Confidence:</span>
+                              <span className={`text-[10px] font-bold ${
+                                linkGuardResult.confidence === 'High' ? 'text-emerald-400' :
+                                linkGuardResult.confidence === 'Medium' ? 'text-amber-400' : 'text-blue-400'
+                              }`}>{linkGuardResult.confidence}</span>
+                            </div>
+                          </div>
                         </div>
 
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wider ${
-                          linkGuardResult.verdict === 'Safe' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                          linkGuardResult.verdict === 'Suspicious' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
-                          linkGuardResult.verdict === 'Needs review' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                          'bg-rose-500/10 text-rose-500 border-rose-500/20'
-                        }`}>
-                          {linkGuardResult.verdict}
-                        </span>
+                        {/* Center Verdict analysis reasons */}
+                        <div className="lg:col-span-2 flex flex-col justify-between gap-4">
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h3 className={`text-sm font-bold ${curTheme.heading}`}>Analysis Summary</h3>
+                              <button
+                                onClick={() => handleToggleSave(linkGuardResult.id)}
+                                className={`px-2.5 py-1 rounded border text-[10px] font-semibold transition-all ${
+                                  linkGuardResult.saved
+                                    ? 'bg-amber-500/20 border-amber-500 text-amber-400'
+                                    : `${curTheme.border} ${curTheme.textMuted} hover:${curTheme.heading}`
+                                }`}
+                              >
+                                {linkGuardResult.saved ? '★ Saved for Review' : '☆ Save for Later'}
+                              </button>
+                            </div>
+                            <p className={`text-xs ${curTheme.text} leading-relaxed`}>{linkGuardResult.explanation}</p>
+                            
+                            {/* Reason tags */}
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {linkGuardResult.reasonTags?.map((tag, i) => (
+                                <span key={i} className="px-2 py-0.5 bg-slate-800 text-slate-300 border border-slate-700 rounded text-[9.5px] font-medium">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Breakdown Grid details */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                            <div className="space-y-1">
+                              <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider`}>Final Destination URL</span>
+                              <span className={`font-mono text-cyan-400 select-all truncate block`}>{linkGuardResult.details.dest}</span>
+                            </div>
+                            <div className="space-y-1">
+                              <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider`}>Resolved Domain</span>
+                              <span className={`font-semibold ${curTheme.text}`}>{linkGuardResult.details.domain}</span>
+                            </div>
+                            <div className="space-y-1">
+                              <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider`}>HTTPS Layer</span>
+                              <span className={linkGuardResult.details.https ? 'text-emerald-500 font-bold' : 'text-rose-500 font-bold'}>
+                                {linkGuardResult.details.https ? 'Secured (HTTPS)' : 'Plaintext HTTP (Insecure)'}
+                              </span>
+                            </div>
+                            <div className="space-y-1">
+                              <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider`}>Shortened Link</span>
+                              <span className={curTheme.text}>{linkGuardResult.details.shortened ? 'Yes' : 'No'}</span>
+                            </div>
+                            {linkGuardResult.details.qrText && (
+                              <div className="space-y-1 md:col-span-2">
+                                <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider`}>Decoded QR Code Raw Data</span>
+                                <p className={`bg-black/10 border ${curTheme.border} p-2 rounded-lg font-mono text-[11px] text-slate-300 select-all`}>
+                                  {linkGuardResult.details.qrText}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Center Verdict analysis reasons */}
-                      <div className="lg:col-span-2 flex flex-col justify-between gap-4">
-                        <div className="space-y-2">
-                          <h3 className={`text-sm font-bold ${curTheme.heading}`}>Analysis Summary</h3>
-                          <p className={`text-xs ${curTheme.text} leading-relaxed`}>{linkGuardResult.explanation}</p>
+                      {/* Bottom scoring breakdown details */}
+                      {linkGuardResult.breakdown && (
+                        <div className={`p-4 rounded-xl bg-black/10 border ${curTheme.border} space-y-3`}>
+                          <h4 className={`text-[10px] font-bold uppercase tracking-wider ${curTheme.textMuted}`}>Weighted Scoring Breakdown</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[11px]">
+                            {[
+                              { label: 'Domain Reputation', val: linkGuardResult.breakdown.reputation, max: 40 },
+                              { label: 'Transport SSL/TLS Security', val: linkGuardResult.breakdown.ssl, max: 20 },
+                              { label: 'Redirect Routing Hops', val: linkGuardResult.breakdown.redirects, max: 20 },
+                              { label: 'Suspicious Keyword Check', val: linkGuardResult.breakdown.keywords, max: 20 }
+                            ].map((vector, i) => (
+                              <div key={i} className="space-y-1">
+                                <div className="flex justify-between text-slate-400">
+                                  <span>{vector.label}</span>
+                                  <span className="font-bold text-white">+{vector.val} pts</span>
+                                </div>
+                                <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                  <div
+                                    className={`h-full ${
+                                      vector.val > 25 ? 'bg-rose-500' : vector.val > 10 ? 'bg-amber-500' : 'bg-emerald-500'
+                                    }`}
+                                    style={{ width: `${(vector.val / vector.max) * 100}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
+                      )}
 
-                        {/* Breakdown Grid details */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                          <div className="space-y-1">
-                            <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider`}>Final Destination URL</span>
-                            <span className={`font-mono text-cyan-400 select-all truncate block`}>{linkGuardResult.details.dest}</span>
-                          </div>
-                          <div className="space-y-1">
-                            <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider`}>Resolved Domain</span>
-                            <span className={`font-semibold ${curTheme.text}`}>{linkGuardResult.details.domain}</span>
-                          </div>
-                          <div className="space-y-1">
-                            <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider`}>HTTPS Layer</span>
-                            <span className={linkGuardResult.details.https ? 'text-emerald-500 font-bold' : 'text-rose-500 font-bold'}>
-                              {linkGuardResult.details.https ? 'Secured (HTTPS)' : 'Plaintext HTTP (Insecure)'}
-                            </span>
-                          </div>
-                          <div className="space-y-1">
-                            <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider`}>Shortened Link</span>
-                            <span className={curTheme.text}>{linkGuardResult.details.shortened ? 'Yes' : 'No'}</span>
-                          </div>
-                          {linkGuardResult.details.qrText && (
-                            <div className="space-y-1 md:col-span-2">
-                              <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider`}>Decoded QR Code Raw Data</span>
-                              <p className={`bg-black/10 border ${curTheme.border} p-2 rounded-lg font-mono text-[11px] text-slate-300 select-all`}>
-                                {linkGuardResult.details.qrText}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Actions drawer triggers */}
-                        <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-700/30">
-                          <button
-                            onClick={async () => {
-                              const ticketData = {
-                                title: `LinkGuard Escalation: ${linkGuardResult.verdict} payload on ${linkGuardResult.details.domain}`,
-                                description: `Escalated from LinkGuard Scan ID: ${linkGuardResult.id}\nVerdict: ${linkGuardResult.verdict}\nRisk Score: ${linkGuardResult.score}\nSource URL/Payload: ${linkGuardResult.input}\nExpanded Destination: ${linkGuardResult.details.dest}\n\nAnalysis Summary:\n${linkGuardResult.explanation}`,
-                                severity: linkGuardResult.score > 80 ? 'Critical' : linkGuardResult.score > 50 ? 'High' : 'Medium',
-                                category: 'Network',
-                                source: 'LinkGuard Analyzer',
-                                status: 'New'
-                              };
-                              try {
-                                const res = await fetch(`${API_BASE}/tickets`, {
+                      {/* Actions drawer triggers */}
+                      <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-700/30">
+                        <button
+                          onClick={async () => {
+                            const ticketData = {
+                              title: `LinkGuard Escalation: ${linkGuardResult.verdict} payload on ${linkGuardResult.details.domain}`,
+                              description: `Escalated from LinkGuard Scan ID: ${linkGuardResult.id}\nVerdict: ${linkGuardResult.verdict}\nRisk Score: ${linkGuardResult.score}\nSource URL/Payload: ${linkGuardResult.input}\nExpanded Destination: ${linkGuardResult.details.dest}\n\nAnalysis Summary:\n${linkGuardResult.explanation}`,
+                              severity: linkGuardResult.score > 80 ? 'Critical' : linkGuardResult.score > 50 ? 'High' : 'Medium',
+                              category: 'Network',
+                              source: 'LinkGuard Analyzer',
+                              status: 'New'
+                            };
+                            try {
+                              const res = await fetch(`${API_BASE}/tickets`, {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify(ticketData)
-                                });
-                                if (res.ok) {
+                              });
+                              if (res.ok) {
                                   const created = await res.json();
                                   setTickets([created, ...tickets]);
-                                } else {
+                              } else {
                                   setTickets([{ ticket_id: `TKT-${1000 + tickets.length + 1}`, ...ticketData, created_at: new Date().toISOString() }, ...tickets]);
-                                }
-                              } catch (e) {
-                                setTickets([{ ticket_id: `TKT-${1000 + tickets.length + 1}`, ...ticketData, created_at: new Date().toISOString() }, ...tickets]);
                               }
-                              alert('Security event escalated successfully! Ticket added to Incident queue.');
-                            }}
-                            className={`px-4 py-2 flex items-center justify-center gap-1.5 text-white font-bold text-xs rounded-lg transition-all active:scale-[0.98] ${
-                              config.primary === 'cyan' ? 'bg-cyan-500 hover:bg-cyan-400' : config.primary === 'emerald' ? 'bg-emerald-500 hover:bg-emerald-400' : config.primary === 'purple' ? 'bg-purple-500 hover:bg-purple-400' : 'bg-amber-500 hover:bg-amber-400'
-                            }`}
-                          >
-                            <IconPlusCircle /> Escalate to Incident Queue
-                          </button>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(linkGuardResult.details.dest);
-                              alert('Destination link copied to clipboard!');
-                            }}
-                            className={`px-4 py-2 border ${curTheme.border} ${curTheme.textMuted} hover:${curTheme.heading} hover:${curTheme.surface} rounded-lg text-xs font-semibold transition-colors`}
-                          >
-                            Copy Expanded Link
-                          </button>
-                        </div>
-
+                            } catch (e) {
+                              setTickets([{ ticket_id: `TKT-${1000 + tickets.length + 1}`, ...ticketData, created_at: new Date().toISOString() }, ...tickets]);
+                            }
+                            alert('Security event escalated successfully! Ticket added to Incident queue.');
+                          }}
+                          className={`px-4 py-2 flex items-center justify-center gap-1.5 text-white font-bold text-xs rounded-lg transition-all active:scale-[0.98] ${
+                            config.primary === 'cyan' ? 'bg-cyan-500 hover:bg-cyan-400' : config.primary === 'emerald' ? 'bg-emerald-500 hover:bg-emerald-400' : config.primary === 'purple' ? 'bg-purple-500 hover:bg-purple-400' : 'bg-amber-500 hover:bg-amber-400'
+                          }`}
+                        >
+                          <IconPlusCircle /> Escalate to Incident Queue
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(linkGuardResult.details.dest);
+                            alert('Destination link copied to clipboard!');
+                          }}
+                          className={`px-4 py-2 border ${curTheme.border} ${curTheme.textMuted} hover:${curTheme.heading} hover:${curTheme.surface} rounded-lg text-xs font-semibold transition-colors`}
+                        >
+                          Copy Expanded Link
+                        </button>
                       </div>
                     </div>
                   )}
 
                   {/* Scan logs history */}
                   <div className={`flex-1 ${curTheme.surface} border ${curTheme.border} rounded-2xl overflow-hidden shadow-xl flex flex-col`}>
-                    <div className="p-4 border-b border-slate-700/30">
+                    <div className="p-4 border-b border-slate-700/30 flex justify-between items-center">
                       <h3 className={`text-sm font-bold ${curTheme.heading}`}>Analysis History</h3>
+                      <span className={`text-[10px] ${curTheme.textMuted}`}>Showing {linkGuardHistory.length} total scanner events</span>
                     </div>
                     <div className="overflow-x-auto overflow-y-auto max-h-[350px]">
                       <table className="w-full text-left text-xs whitespace-nowrap">
@@ -1770,22 +1945,47 @@ function App() {
                         </thead>
                         <tbody className={`divide-y ${curTheme.border}`}>
                           {linkGuardHistory.map((log, idx) => (
-                            <tr key={idx} className="hover:bg-black/5 transition-colors cursor-pointer" onClick={() => setLinkGuardSelectedHistory(log)}>
-                              <td className={`px-5 py-3 font-mono ${curTheme.text}`}>{log.id}</td>
+                            <tr
+                              key={idx}
+                              className={`hover:bg-black/5 transition-colors cursor-pointer ${log.saved ? 'bg-amber-500/5' : ''}`}
+                              onClick={() => {
+                                setLinkGuardSelectedHistory(log);
+                                setLinkGuardNotes(log.notes || '');
+                              }}
+                            >
+                              <td className={`px-5 py-3 font-mono ${curTheme.text} flex items-center gap-1.5`}>
+                                {log.saved && <span className="text-amber-500" title="Saved for Review">★</span>}
+                                {log.id}
+                              </td>
                               <td className={`px-5 py-3 text-slate-500`}>{new Date(log.timestamp).toLocaleTimeString()}</td>
                               <td className={`px-5 py-3 font-semibold ${curTheme.text}`}>{log.type}</td>
                               <td className={`px-5 py-3 font-mono text-slate-400 max-w-xs truncate`} title={log.input}>{log.input}</td>
                               <td className="px-5 py-3">
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${
-                                  log.verdict === 'Safe' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                                  log.verdict === 'Suspicious' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
-                                  log.verdict === 'Needs review' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                                  'bg-rose-500/10 text-rose-500 border-rose-500/20'
-                                }`}>
-                                  {log.verdict}
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${
+                                    log.verdict === 'Safe' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                                    log.verdict === 'Suspicious' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                                    log.verdict === 'Needs review' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                                    'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                                  }`}>
+                                    {log.verdict}
+                                  </span>
+                                  <span className="text-[9px] text-slate-500">{log.confidence}</span>
+                                </div>
                               </td>
-                              <td className={`px-5 py-3 font-bold ${curTheme.text}`}>{log.score} / 100</td>
+                              <td className="px-5 py-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-12 bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                    <div
+                                      className={`h-full ${
+                                        log.score > 75 ? 'bg-rose-500' : log.score > 40 ? 'bg-amber-500' : 'bg-emerald-500'
+                                      }`}
+                                      style={{ width: `${log.score}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className={`font-bold ${curTheme.text}`}>{log.score}</span>
+                                </div>
+                              </td>
                               <td className="px-5 py-3 text-right">
                                 <button className={`text-[10px] ${curColor.text} font-bold hover:underline`}>View Logs</button>
                               </td>
@@ -1798,7 +1998,7 @@ function App() {
 
                   {/* Detailed Analysis log drawer */}
                   {linkGuardSelectedHistory && (
-                    <div className={`fixed inset-y-0 right-0 w-96 ${curTheme.surfaceSolid} border-l ${curTheme.border} shadow-2xl z-50 p-6 flex flex-col gap-6 animate-in slide-in-from-right duration-300`}>
+                    <div className={`fixed inset-y-0 right-0 w-[420px] ${curTheme.surfaceSolid} border-l ${curTheme.border} shadow-2xl z-50 p-6 flex flex-col gap-6 animate-in slide-in-from-right duration-300`}>
                       <div className="flex items-center justify-between border-b pb-4">
                         <div>
                           <h3 className={`text-md font-bold ${curTheme.heading}`}>Analysis Logs</h3>
@@ -1807,7 +2007,50 @@ function App() {
                         <button onClick={() => setLinkGuardSelectedHistory(null)} className={`${curTheme.textMuted} hover:${curTheme.heading}`}><IconX /></button>
                       </div>
 
-                      <div className="flex-1 space-y-4 overflow-y-auto pr-2 text-xs">
+                      <div className="flex-1 space-y-5 overflow-y-auto pr-2 text-xs">
+                        {/* Saved Status */}
+                        <div className="flex justify-between items-center">
+                          <span className={`font-bold ${curTheme.textMuted} uppercase tracking-wider`}>Review Status</span>
+                          <button
+                            onClick={() => handleToggleSave(linkGuardSelectedHistory.id)}
+                            className={`px-2 py-1 text-[10px] rounded border font-semibold ${
+                              linkGuardSelectedHistory.saved
+                                ? 'bg-amber-500/20 border-amber-500 text-amber-400'
+                                : `${curTheme.border} ${curTheme.textMuted}`
+                            }`}
+                          >
+                            {linkGuardSelectedHistory.saved ? '★ Bookmarked' : '☆ Bookmark'}
+                          </button>
+                        </div>
+
+                        {/* Analyst Override Actions */}
+                        <div className="space-y-2 p-3 bg-black/10 border border-slate-700/30 rounded-xl">
+                          <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider`}>Analyst Override / Verdict</span>
+                          <div className="grid grid-cols-2 gap-2">
+                            {[
+                              { label: 'Safe', score: 5 },
+                              { label: 'Suspicious', score: 50 },
+                              { label: 'Needs review', score: 35 },
+                              { label: 'Malicious', score: 95 }
+                            ].map((override) => (
+                              <button
+                                key={override.label}
+                                onClick={() => handleUpdateVerdict(linkGuardSelectedHistory.id, override.label, override.score, 'High')}
+                                className={`py-1.5 px-2 rounded-lg border text-center transition-all ${
+                                  linkGuardSelectedHistory.verdict === override.label
+                                    ? override.label === 'Safe' ? 'bg-emerald-500/25 border-emerald-500 text-emerald-400' :
+                                      override.label === 'Suspicious' ? 'bg-amber-500/25 border-amber-500 text-amber-400' :
+                                      override.label === 'Needs review' ? 'bg-blue-500/25 border-blue-500 text-blue-400' :
+                                      'bg-rose-500/25 border-rose-500 text-rose-400'
+                                    : `${curTheme.border} ${curTheme.textMuted} hover:${curTheme.surface}`
+                                }`}
+                              >
+                                {override.label} ({override.score})
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
                         <div className="space-y-1">
                           <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider`}>Scan Verdict Summary</span>
                           <p className={`${curTheme.text} leading-relaxed bg-black/20 p-2.5 rounded-lg border ${curTheme.border}`}>{linkGuardSelectedHistory.explanation}</p>
@@ -1841,7 +2084,10 @@ function App() {
                             rows="4"
                             placeholder="Add manual notes, compliance review summaries, or remediation logs..."
                             value={linkGuardNotes}
-                            onChange={e => setLinkGuardNotes(e.target.value)}
+                            onChange={e => {
+                              setLinkGuardNotes(e.target.value);
+                              handleSaveNotes(linkGuardSelectedHistory.id, e.target.value);
+                            }}
                             className={`w-full ${curTheme.input} border rounded-lg p-2.5 text-xs focus:outline-none focus:ring-1 ${curColor.ring} resize-none`}
                           />
                         </div>
@@ -1860,15 +2106,15 @@ function App() {
                             };
                             try {
                               const res = await fetch(`${API_BASE}/tickets`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(ticketData)
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify(ticketData)
                               });
                               if (res.ok) {
-                                const created = await res.json();
-                                setTickets([created, ...tickets]);
+                                  const created = await res.json();
+                                  setTickets([created, ...tickets]);
                               } else {
-                                setTickets([{ ticket_id: `TKT-${1000 + tickets.length + 1}`, ...ticketData, created_at: new Date().toISOString() }, ...tickets]);
+                                  setTickets([{ ticket_id: `TKT-${1000 + tickets.length + 1}`, ...ticketData, created_at: new Date().toISOString() }, ...tickets]);
                               }
                             } catch (e) {
                               setTickets([{ ticket_id: `TKT-${1000 + tickets.length + 1}`, ...ticketData, created_at: new Date().toISOString() }, ...tickets]);
