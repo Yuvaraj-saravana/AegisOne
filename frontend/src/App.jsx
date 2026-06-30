@@ -55,6 +55,7 @@ const IconShieldAlert = () => <svg xmlns="http://www.w3.org/2000/svg" width="16"
 const IconDownloadCloud = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>;
 const IconUploadCloud = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>;
 const IconLayers = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>;
+const IconGrid = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>;
 
 const API_BASE = "http://localhost:8000";
 
@@ -867,6 +868,87 @@ function App() {
       return pb;
     }));
   };
+
+  // MITRE ATT&CK Mapping & Correlation States
+  const [selectedChainId, setSelectedChainId] = useState('CH-001');
+  const [selectedMitreNode, setSelectedMitreNode] = useState(null);
+  const [mitreFilterTactic, setMitreFilterTactic] = useState('All');
+  const [mitreSearchQuery, setMitreSearchQuery] = useState('');
+
+  const [mitreTactics] = useState([
+    {
+      tactic: 'Initial Access',
+      id: 'TA0001',
+      techniques: [
+        { id: 'T1566', name: 'Phishing', active: true, source: 'Email Security', reason: 'Common inbound phishing mail payloads containing links.' },
+        { id: 'T1566.002', name: 'Spearphishing Link', active: true, source: 'LinkGuard Scan', reason: 'Lookalike Paypal domain scans identified.' },
+        { id: 'T1190', name: 'Exploit Public-Facing App', active: true, source: 'SIEM Logs / Vuln', reason: 'RCE exploit matched on Web Application gateway.' },
+        { id: 'T1133', name: 'External Remote Services', active: false, source: 'None', reason: 'No active indicators matched.' }
+      ]
+    },
+    {
+      tactic: 'Execution',
+      id: 'TA0002',
+      techniques: [
+        { id: 'T1059', name: 'Command & Scripting Interpreter', active: true, source: 'Threat Intel / SIEM', reason: 'Powershell execution bypass commands parsed.' },
+        { id: 'T1053', name: 'Scheduled Task/Job', active: false, source: 'None', reason: 'No scheduled execution vectors logged.' }
+      ]
+    },
+    {
+      tactic: 'Persistence',
+      id: 'TA0003',
+      techniques: [
+        { id: 'T1098', name: 'Account Manipulation', active: true, source: 'Incident Ticket', reason: 'MFA profile configuration bypass reported.' },
+        { id: 'T1505.003', name: 'Web Shell', active: false, source: 'None', reason: 'No active persistence listeners registered.' }
+      ]
+    },
+    {
+      tactic: 'Defense Evasion',
+      id: 'TA0005',
+      techniques: [
+        { id: 'T1027', name: 'Obfuscated Files or Info', active: true, source: 'LinkGuard QR Code', reason: 'Decoded quishing payload hiding destination URL.' },
+        { id: 'T1070', name: 'Indicator Removal on Host', active: false, source: 'None', reason: 'No syslog clearing alerts detected.' }
+      ]
+    },
+    {
+      tactic: 'Command & Control',
+      id: 'TA0011',
+      techniques: [
+        { id: 'T1102', name: 'Web Service', active: true, source: 'SIEM Logs', reason: 'Outbound DNS requests resolving to malicious SSO portal.' },
+        { id: 'T1071', name: 'Application Layer Protocol', active: false, source: 'None', reason: 'Standard communication patterns observed.' }
+      ]
+    }
+  ]);
+
+  const [correlationChains, setCorrelationChains] = useState([
+    {
+      id: 'CH-001',
+      name: 'Spearphishing & Credential Harvest Flow',
+      desc: 'Correlates an inbound spoofed email alert with a LinkGuard QR scanner event, an outbound C2 redirect connection, and an active credential hacking incident.',
+      severity: 'Critical',
+      status: 'Active Investigation',
+      confidence: '95% (High)',
+      nodes: [
+        { id: 'N1', label: 'Inbound Email Alert', time: '14:20:10', type: 'Email', tactic: 'Initial Access', tech: 'T1566 (Phishing)', details: 'Spoofed header detected with SPF validation failure.', evidence: 'Mail ID: MSG-893022, Sender: updates@microsoft-support.net' },
+        { id: 'N2', label: 'LinkGuard Scan: QR Code', time: '14:22:35', type: 'LinkGuard', tactic: 'Defense Evasion', tech: 'T1027 (Obfuscated Files)', details: 'Analyst scanned preset MOCK_QR_MFA_UPDATE.png leading to harvest site.', evidence: 'Scan ID: LG-9004, Payload: update-sso-portal.com' },
+        { id: 'N3', label: 'Outbound SIEM Web Redirect', time: '14:25:40', type: 'SIEM', tactic: 'Command & Control', tech: 'T1102 (Web Service)', details: 'Syslog socket matched egress traffic to login-microsoft-auth-update.net.', evidence: 'Host: 10.0.4.15 -> 185.190.140.23:443' },
+        { id: 'N4', label: 'Credential Incident Logged', time: '14:28:12', type: 'Incident', tactic: 'Persistence', tech: 'T1098 (Account Manipulation)', details: 'Active ticket created automatically regarding bypassed MFA profiles.', evidence: 'Ticket ID: TKT-1002, Target: Administrator User' }
+      ]
+    },
+    {
+      id: 'CH-002',
+      name: 'Public Web Gateway Exploit Chain',
+      desc: 'Correlates a vulnerability assessment scan warning with a syslog Tomcat exploit payload match and command injection telemetry.',
+      severity: 'High',
+      status: 'Mitigated / Isolated',
+      confidence: '88% (High)',
+      nodes: [
+        { id: 'N5', label: 'Vulnerability Scan Alert', time: '10:05:00', type: 'Vulnerability', tactic: 'Initial Access', tech: 'T1595 (Active Scanning)', details: 'CVE-2024-3847 Tomcat RCE mismatch detected on Web Server.', evidence: 'Host: web-gateway-01.aegisone.internal' },
+        { id: 'N6', label: 'Syslog Exploit Attempt', time: '10:06:12', type: 'SIEM', tactic: 'Initial Access', tech: 'T1190 (Exploit Public-Facing App)', details: 'Signature matched injection payload on authentication port.', evidence: 'IP: 198.51.100.42 -> 10.0.2.4:8080' },
+        { id: 'N7', label: 'Command shell executed', time: '10:07:45', type: 'Threat Intel', tactic: 'Execution', tech: 'T1059 (Command & Script Interpreter)', details: 'Interactive powershell utility bypass initialized.', evidence: 'Process: cmd.exe /c powershell -ExecutionPolicy Bypass' }
+      ]
+    }
+  ]);
 
   // Initial Fetch & Health Check
   useEffect(() => {
@@ -2550,6 +2632,249 @@ function App() {
                         </table>
                       </div>
                     </div>
+
+                  </div>
+                );
+              })()}
+              {/* MITRE ATT&CK CORRELATION ENGINE MODULE */}
+              {activeTab === 'MITRE Correlation' && (() => {
+                const currentChain = correlationChains.find(c => c.id === selectedChainId) || correlationChains[0];
+                return (
+                  <div className="animate-in fade-in duration-500 h-full flex flex-col gap-6">
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div>
+                        <h2 className={`text-2xl font-extrabold ${curTheme.heading} tracking-tight flex items-center gap-2`}>
+                          <span className={curColor.text}><IconGrid /></span>
+                          MITRE ATT&CK Matrix & Correlation Engine
+                        </h2>
+                        <p className={`${curTheme.textMuted} text-sm`}>Correlate isolated alerts across LinkGuard, SIEM, and vulnerability layers into unified kill-chain pathways.</p>
+                      </div>
+
+                      {/* Filters */}
+                      <div className="flex flex-wrap gap-2">
+                        <input
+                          type="text"
+                          placeholder="Search MITRE techniques..."
+                          value={mitreSearchQuery}
+                          onChange={e => setMitreSearchQuery(e.target.value)}
+                          className={`${curTheme.input} border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 ${curColor.ring}`}
+                        />
+                        <select
+                          value={mitreFilterTactic}
+                          onChange={e => setMitreFilterTactic(e.target.value)}
+                          className={`${curTheme.input} border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 ${curColor.ring}`}
+                        >
+                          <option value="All">All Tactics</option>
+                          <option value="Initial Access">Initial Access</option>
+                          <option value="Execution">Execution</option>
+                          <option value="Persistence">Persistence</option>
+                          <option value="Defense Evasion">Defense Evasion</option>
+                          <option value="Command & Control">Command & Control</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Matrix Grid */}
+                    <div className={`${curTheme.surface} border ${curTheme.border} rounded-2xl p-5 shadow-xl space-y-4`}>
+                      <h3 className={`text-xs font-bold uppercase tracking-wider ${curTheme.textMuted}`}>Active ATT&CK Matrix Mapping</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        {mitreTactics
+                          .filter(t => mitreFilterTactic === 'All' || t.tactic === mitreFilterTactic)
+                          .map((t, idx) => (
+                            <div key={idx} className="space-y-3 p-3 bg-black/10 border border-slate-700/20 rounded-xl flex flex-col justify-between">
+                              <div>
+                                <h4 className={`text-[10px] font-bold ${curColor.text} uppercase tracking-wider`}>{t.tactic}</h4>
+                                <span className="text-[9px] text-slate-500 font-mono">{t.id}</span>
+                              </div>
+                              <div className="space-y-2">
+                                {t.techniques
+                                  .filter(tech => !mitreSearchQuery || tech.name.toLowerCase().includes(mitreSearchQuery.toLowerCase()) || tech.id.toLowerCase().includes(mitreSearchQuery.toLowerCase()))
+                                  .map((tech, tIdx) => (
+                                    <button
+                                      key={tIdx}
+                                      onClick={() => setSelectedMitreNode({ ...tech, tactic: t.tactic, tacticId: t.id })}
+                                      className={`w-full text-left p-2.5 rounded-lg border text-[11px] transition-all ${
+                                        tech.active
+                                          ? `border-cyan-500/50 bg-cyan-500/5 hover:bg-cyan-500/10 text-cyan-400 font-bold shadow-md`
+                                          : `border-slate-800 bg-black/5 text-slate-600 cursor-not-allowed`
+                                      }`}
+                                    >
+                                      <div className="flex justify-between items-center mb-0.5">
+                                        <span className="font-mono text-[9px]">{tech.id}</span>
+                                        {tech.active && <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse"></span>}
+                                      </div>
+                                      <p className="truncate" title={tech.name}>{tech.name}</p>
+                                    </button>
+                                  ))}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Correlation Chains Map */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Left: Correlation List */}
+                      <div className={`${curTheme.surface} border ${curTheme.border} rounded-2xl p-4 shadow-xl space-y-3`}>
+                        <h3 className={`text-xs font-bold uppercase tracking-wider ${curTheme.textMuted}`}>Threat Correlations</h3>
+                        <div className="flex flex-col gap-2">
+                          {correlationChains.map((c) => (
+                            <button
+                              key={c.id}
+                              onClick={() => setSelectedChainId(c.id)}
+                              className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                                selectedChainId === c.id
+                                  ? `border-cyan-500 bg-cyan-500/5`
+                                  : `${curTheme.border} hover:${curTheme.surface}`
+                              }`}
+                            >
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="font-mono text-[9px] text-slate-500">{c.id}</span>
+                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold border uppercase tracking-wider ${
+                                  c.severity === 'Critical' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                }`}>
+                                  {c.severity}
+                                </span>
+                              </div>
+                              <h4 className={`font-bold ${curTheme.heading} mb-1`}>{c.name}</h4>
+                              <p className={`text-[10px] ${curTheme.textMuted} line-clamp-2`}>{c.desc}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Right: Correlation timeline flow */}
+                      <div className="lg:col-span-2 flex flex-col gap-4">
+                        <div className={`${curTheme.surface} border ${curTheme.border} rounded-2xl p-6 shadow-xl space-y-6 flex-1`}>
+                          <div className="flex justify-between items-center border-b border-slate-700/30 pb-3">
+                            <div>
+                              <h3 className={`text-sm font-bold ${curTheme.heading}`}>{currentChain.name}</h3>
+                              <p className={`text-[11px] ${curTheme.textMuted}`}>Confidence index: <span className="font-semibold text-cyan-400">{currentChain.confidence}</span></p>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                              currentChain.status.includes('Mitigated') ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 animate-pulse'
+                            }`}>
+                              {currentChain.status}
+                            </span>
+                          </div>
+
+                          {/* Attack Chain Map Flow */}
+                          <div className="relative flex flex-col gap-6 pl-4 border-l-2 border-dashed border-slate-700/50 my-2">
+                            {currentChain.nodes.map((node, nIdx) => (
+                              <div
+                                key={node.id}
+                                className={`relative p-3.5 rounded-xl border ${curTheme.border} bg-black/10 hover:bg-black/25 hover:border-slate-500 transition-all cursor-pointer group`}
+                                onClick={() => setSelectedMitreNode({
+                                  id: node.tech.split(' ')[0],
+                                  name: node.tech.split(' ')[1] || node.tech,
+                                  tactic: node.tactic,
+                                  source: node.type,
+                                  reason: node.details,
+                                  evidence: node.evidence
+                                })}
+                              >
+                                {/* Bullet indicator */}
+                                <div className="absolute -left-[23px] top-[18px] h-3.5 w-3.5 rounded-full bg-slate-900 border-2 border-cyan-500 flex items-center justify-center">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-cyan-400"></div>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 text-[9px] font-bold uppercase tracking-wider">{node.type}</span>
+                                    <span className={`text-[11px] font-semibold ${curTheme.heading}`}>{node.label}</span>
+                                  </div>
+                                  <span className="text-[10px] text-slate-500 font-mono">{node.time} UTC</span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px] text-slate-400">
+                                  <div>
+                                    <span className="text-slate-500">MITRE Tactic:</span> <span className="font-semibold text-white">{node.tactic}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-500">MITRE Technique:</span> <span className="font-mono font-semibold text-cyan-400">{node.tech}</span>
+                                  </div>
+                                  <div className="md:col-span-2 border-t border-slate-800/40 pt-1 mt-1 text-[10px] text-slate-500 flex justify-between">
+                                    <span>Evidence: <span className="font-mono text-slate-300 select-all">{node.evidence}</span></span>
+                                    <span className="opacity-0 group-hover:opacity-100 text-cyan-400 transition-opacity font-bold">Investigate Node &rarr;</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mapping Details drawer */}
+                    {selectedMitreNode && (
+                      <div className={`fixed inset-y-0 right-0 w-[420px] ${curTheme.surfaceSolid} border-l ${curTheme.border} shadow-2xl z-50 p-6 flex flex-col gap-6 animate-in slide-in-from-right duration-300`}>
+                        <div className="flex items-center justify-between border-b pb-4">
+                          <div>
+                            <h3 className={`text-md font-bold ${curTheme.heading}`}>Technique Mapping Details</h3>
+                            <p className="font-mono text-xs text-cyan-400">{selectedMitreNode.id}</p>
+                          </div>
+                          <button onClick={() => setSelectedMitreNode(null)} className={`${curTheme.textMuted} hover:${curTheme.heading}`}><IconX /></button>
+                        </div>
+
+                        <div className="flex-1 space-y-4 overflow-y-auto pr-2 text-xs">
+                          <div className="space-y-1">
+                            <span className="block font-bold text-slate-400 uppercase tracking-wider text-[9px]">Technique Name</span>
+                            <span className={`text-sm font-bold ${curTheme.heading}`}>{selectedMitreNode.name}</span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4 bg-black/10 p-3 rounded-xl border border-slate-700/30">
+                            <div>
+                              <span className="block font-bold text-slate-500 uppercase tracking-wider text-[9px]">Associated Tactic</span>
+                              <span className="font-semibold text-white">{selectedMitreNode.tactic}</span>
+                            </div>
+                            {selectedMitreNode.tacticId && (
+                              <div>
+                                <span className="block font-bold text-slate-500 uppercase tracking-wider text-[9px]">Tactic ID</span>
+                                <span className="font-mono text-white">{selectedMitreNode.tacticId}</span>
+                              </div>
+                            )}
+                            <div>
+                              <span className="block font-bold text-slate-500 uppercase tracking-wider text-[9px]">Reporting Source</span>
+                              <span className="font-semibold text-cyan-400">{selectedMitreNode.source}</span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <span className="block font-bold text-slate-500 uppercase tracking-wider text-[9px]">Trigger Rationale</span>
+                            <p className={`${curTheme.text} leading-relaxed bg-black/20 p-2.5 rounded-lg border ${curTheme.border}`}>{selectedMitreNode.reason}</p>
+                          </div>
+
+                          {selectedMitreNode.evidence && (
+                            <div className="space-y-1">
+                              <span className="block font-bold text-slate-500 uppercase tracking-wider text-[9px]">Linked Evidence Payload</span>
+                              <pre className="bg-black/30 border border-slate-800 p-2.5 rounded-lg font-mono text-[10px] text-cyan-400 whitespace-pre-wrap select-all">{selectedMitreNode.evidence}</pre>
+                            </div>
+                          )}
+
+                          <div className="space-y-2 pt-2 border-t border-slate-700/30">
+                            <span className="block font-bold text-slate-500 uppercase tracking-wider text-[9px]">Recommended Containment Actions</span>
+                            <div className="space-y-1.5 text-slate-300">
+                              <p>• Isolate outbound connections resolving to the flagged remote domain.</p>
+                              <p>• Enforce mandatory credential validation/reset on associated user endpoints.</p>
+                              <p>• Review related playbooks for automated quarantining rules.</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-4">
+                          <button
+                            onClick={() => {
+                              alert(`Isolating vectors for technique ${selectedMitreNode.id}. Triggering active firewall blockrules...`);
+                              setSelectedMitreNode(null);
+                            }}
+                            className={`w-full py-2.5 rounded-lg font-bold text-white shadow-lg transition-all active:scale-[0.98] ${config.primary === 'cyan' ? 'bg-cyan-500 hover:bg-cyan-400' : config.primary === 'emerald' ? 'bg-emerald-500 hover:bg-emerald-400' : config.primary === 'purple' ? 'bg-purple-500 hover:bg-purple-400' : 'bg-amber-500 hover:bg-amber-400'}`}
+                          >
+                            Block Mapped Indicators
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                   </div>
                 );
