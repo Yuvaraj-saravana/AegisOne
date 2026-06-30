@@ -54,6 +54,7 @@ const IconKey = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height=
 const IconShieldAlert = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>;
 const IconDownloadCloud = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>;
 const IconUploadCloud = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>;
+const IconLayers = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>;
 
 const API_BASE = "http://localhost:8000";
 
@@ -617,6 +618,14 @@ function App() {
       setLinkGuardResult(result);
       setLinkGuardHistory(prev => [result, ...prev]);
       setLinkGuardScanning(false);
+
+      if (result && result.score > 75 && autoRunPlaybooks) {
+        const matchingPlaybook = result.type === 'URL' ? 'PB-001' : 'PB-002';
+        handleRunPlaybook(matchingPlaybook, `Automated LinkGuard Scan ${result.id}`);
+        setTimeout(() => {
+          alert(`Auto-Automation Active: High-risk ${result.type} scan detected (Risk Score: ${result.score}). Instantly triggering Playbook: ${result.type === 'URL' ? 'Suspicious URL Response' : 'Malicious QR Code Mitigation'}.`);
+        }, 300);
+      }
     }, 1500);
   };
 
@@ -670,6 +679,192 @@ function App() {
         return updated;
       }
       return item;
+    }));
+  };
+
+  // SOC Playbooks & Automation States
+  const [selectedPlaybookId, setSelectedPlaybookId] = useState('PB-001');
+  const [isRunningPlaybook, setIsRunningPlaybook] = useState(false);
+  const [runningPlaybookStep, setRunningPlaybookStep] = useState(-1);
+  const [autoRunPlaybooks, setAutoRunPlaybooks] = useState(true);
+
+  const [playbooks, setPlaybooks] = useState([
+    {
+      id: 'PB-001',
+      name: 'Suspicious URL Response',
+      desc: 'Triages and isolates outbound requests matching suspicious reputational indicators or redirect chains.',
+      trigger: 'LinkGuard Risk Score > 50',
+      severity: 'High',
+      team: 'SOC Tier-1',
+      lastRun: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+      status: 'Completed',
+      steps: [
+        { label: 'Ingest and parse target URL variables', type: 'triage', status: 'Completed', note: 'Extracted redirect links and SSL layer variables.' },
+        { label: 'Cross-reference domain with TI threat feeds', type: 'analysis', status: 'Completed', note: 'Polled AlienVault and VirusTotal API connectors.' },
+        { label: 'Isolate user browser session / quarantine link', type: 'containment', status: 'Completed', note: 'Pushed browser policy to block host DNS resolver.' },
+        { label: 'Create high priority SOC incident ticket', type: 'escalation', status: 'Completed', note: 'Incident ticket TKT-1002 generated automatically.' },
+        { label: 'Notify on-duty Security Operations analyst', type: 'escalation', status: 'Completed', note: 'Slack dispatch sent to SOC channel.' },
+        { label: 'Resolve trigger and catalog evidence payload', type: 'resolution', status: 'Completed', note: 'Scan logs pushed to central SIEM database.' }
+      ]
+    },
+    {
+      id: 'PB-002',
+      name: 'Malicious QR Code Mitigation',
+      desc: 'Quarantines quishing alerts derived from scanned QR matrices targeting internal user mailboxes.',
+      trigger: 'QR Code Scan Inbound Payload',
+      severity: 'Critical',
+      team: 'Incident Response',
+      lastRun: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+      status: 'Completed',
+      steps: [
+        { label: 'Extract raw decoded text from image matrix', type: 'triage', status: 'Completed', note: 'Decoded payload: credential harvest redirect.' },
+        { label: 'Identify and quarantine email delivery vector', type: 'containment', status: 'Completed', note: 'Message deleted from recipient inbox.' },
+        { label: 'Flag account credentials for mandatory reset', type: 'containment', status: 'Completed', note: 'Enforced MFA reset via Azure AD webhook.' },
+        { label: 'Escalate threat details to Security Manager', type: 'escalation', status: 'Completed', note: 'Manager notified via pager.' },
+        { label: 'Log forensic screenshot details as evidence', type: 'resolution', status: 'Completed', note: 'Mock QR matrix archived in sandbox.' }
+      ]
+    },
+    {
+      id: 'PB-003',
+      name: 'Credential Harvesting Domain Block',
+      desc: 'Configures immediate gateway containment rules against lookalike logins spoofing AegisOne brands.',
+      trigger: 'Lookalike Domain Match',
+      severity: 'Critical',
+      team: 'Network Security',
+      lastRun: 'Never',
+      status: 'Pending',
+      steps: [
+        { label: 'Extract typo-squatted brand keywords', type: 'triage', status: 'Pending', note: '' },
+        { label: 'Inject block address inside firewalls and DNS resolvers', type: 'containment', status: 'Pending', note: '' },
+        { label: 'Terminate existing active user sessions to domain', type: 'containment', status: 'Pending', note: '' },
+        { label: 'Promote findings to enterprise threat ledger', type: 'escalation', status: 'Pending', note: '' }
+      ]
+    },
+    {
+      id: 'PB-004',
+      name: 'Suspicious Email Sender Quarantine',
+      desc: 'Validates DMARC/SPF parameters and isolates messages displaying spoofed headers.',
+      trigger: 'Phishing Email Received',
+      severity: 'Medium',
+      team: 'Email Security',
+      lastRun: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      status: 'Completed',
+      steps: [
+        { label: 'Parse header validation indicators', type: 'triage', status: 'Completed', note: 'SPF fail matched.' },
+        { label: 'Quarantine item from recipient directory', type: 'containment', status: 'Completed', note: 'Vault transfer done.' },
+        { label: 'Alert target recipient of blocked message', type: 'resolution', status: 'Completed', note: 'Email dispatch warning user completed.' }
+      ]
+    }
+  ]);
+
+  const [playbookHistory, setPlaybookHistory] = useState([
+    {
+      id: 'RUN-201',
+      playbookId: 'PB-001',
+      name: 'Suspicious URL Response',
+      trigger: 'Manual Trigger by admin',
+      status: 'Completed',
+      timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString()
+    },
+    {
+      id: 'RUN-202',
+      playbookId: 'PB-002',
+      name: 'Malicious QR Code Mitigation',
+      trigger: 'Automated LinkGuard Scan LG-9004',
+      status: 'Completed',
+      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
+    },
+    {
+      id: 'RUN-203',
+      playbookId: 'PB-004',
+      name: 'Suspicious Email Sender Quarantine',
+      trigger: 'Manual Trigger by analyst-1',
+      status: 'Completed',
+      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    }
+  ]);
+
+  const handleRunPlaybook = (playbookId, triggerSource = 'Manual Trigger') => {
+    if (isRunningPlaybook) return;
+    
+    setIsRunningPlaybook(true);
+    setRunningPlaybookStep(0);
+
+    // Update playbook status to Running
+    setPlaybooks(prev => prev.map(pb => {
+      if (pb.id === playbookId) {
+        return {
+          ...pb,
+          status: 'Running',
+          steps: pb.steps.map(step => ({ ...step, status: 'Pending' }))
+        };
+      }
+      return pb;
+    }));
+
+    const activePlaybook = playbooks.find(p => p.id === playbookId);
+    if (!activePlaybook) return;
+
+    let currentStep = 0;
+    const interval = setInterval(() => {
+      setPlaybooks(prev => prev.map(pb => {
+        if (pb.id === playbookId) {
+          const updatedSteps = pb.steps.map((step, idx) => {
+            if (idx === currentStep) {
+              return { ...step, status: 'Completed', note: step.note || 'Step completed successfully.' };
+            }
+            return step;
+          });
+          return {
+            ...pb,
+            steps: updatedSteps
+          };
+        }
+        return pb;
+      }));
+
+      currentStep += 1;
+      setRunningPlaybookStep(currentStep);
+
+      if (currentStep >= activePlaybook.steps.length) {
+        clearInterval(interval);
+        setIsRunningPlaybook(false);
+        setRunningPlaybookStep(-1);
+        
+        // Mark Completed
+        setPlaybooks(prev => prev.map(pb => {
+          if (pb.id === playbookId) {
+            return { ...pb, status: 'Completed', lastRun: new Date().toISOString() };
+          }
+          return pb;
+        }));
+
+        // Log to history
+        const newRun = {
+          id: `RUN-${Math.floor(300 + Math.random() * 200)}`,
+          playbookId,
+          name: activePlaybook.name,
+          trigger: triggerSource,
+          status: 'Completed',
+          timestamp: new Date().toISOString()
+        };
+        setPlaybookHistory(prev => [newRun, ...prev]);
+      }
+    }, 1200);
+  };
+
+  const handleUpdateStepNote = (playbookId, stepIndex, newNote) => {
+    setPlaybooks(prev => prev.map(pb => {
+      if (pb.id === playbookId) {
+        const updatedSteps = pb.steps.map((step, idx) => {
+          if (idx === stepIndex) {
+            return { ...step, note: newNote };
+          }
+          return step;
+        });
+        return { ...pb, steps: updatedSteps };
+      }
+      return pb;
     }));
   };
 
@@ -960,6 +1155,7 @@ function App() {
     { icon: <IconDashboard />, label: 'Dashboard', active: activeTab === 'Dashboard' },
     { icon: <IconDatabase />, label: 'SIEM / Logs', active: activeTab === 'SIEM / Logs' },
     { icon: <IconLink />, label: 'LinkGuard', active: activeTab === 'LinkGuard' },
+    { icon: <IconLayers />, label: 'SOC Playbooks', active: activeTab === 'SOC Playbooks' },
     { icon: <IconAlertTriangle />, label: 'Incidents', active: activeTab === 'Incidents' },
     { icon: <IconTarget />, label: 'Vulnerabilities', active: activeTab === 'Vulnerabilities' },
     { icon: <IconActivity />, label: 'Threat Intel', active: activeTab === 'Threat Intel' },
@@ -2135,6 +2331,229 @@ function App() {
 
                 </div>
               )}
+              {/* SOC PLAYBOOKS & AUTOMATION WORKFLOWS MODULE */}
+              {activeTab === 'SOC Playbooks' && (() => {
+                const currentPlaybook = playbooks.find(p => p.id === selectedPlaybookId) || playbooks[0];
+                return (
+                  <div className="animate-in fade-in duration-500 h-full flex flex-col gap-6">
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div>
+                        <h2 className={`text-2xl font-extrabold ${curTheme.heading} tracking-tight flex items-center gap-2`}>
+                          <span className={curColor.text}><IconLayers /></span>
+                          SOC SOAR: Playbooks & Automation
+                        </h2>
+                        <p className={`${curTheme.textMuted} text-sm`}>Orchestrate automated containment rules and incident escalation playbook pipelines across AegisOne.</p>
+                      </div>
+
+                      {/* Automation Switch */}
+                      <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl ${curTheme.surface} border ${curTheme.border} shadow-lg`}>
+                        <div className="flex flex-col">
+                          <span className={`text-[10px] font-bold ${curTheme.heading}`}>Auto-Trigger on Scanner</span>
+                          <span className={`text-[9px] ${curTheme.textMuted}`}>Run playbooks automatically on high risk URL scans</span>
+                        </div>
+                        <button
+                          onClick={() => setAutoRunPlaybooks(!autoRunPlaybooks)}
+                          className={`w-10 h-5.5 rounded-full p-0.5 transition-colors relative ${
+                            autoRunPlaybooks ? 'bg-cyan-500' : 'bg-slate-700'
+                          }`}
+                        >
+                          <span className={`block w-4.5 h-4.5 rounded-full bg-white transition-transform ${
+                            autoRunPlaybooks ? 'translate-x-4.5' : 'translate-x-0'
+                          }`}></span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Content Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 items-start">
+                      {/* Left Side: Playbooks List */}
+                      <div className="space-y-4">
+                        <div className={`${curTheme.surface} border ${curTheme.border} rounded-2xl p-4 shadow-xl space-y-3`}>
+                          <h3 className={`text-xs font-bold uppercase tracking-wider ${curTheme.textMuted}`}>Security Runbooks</h3>
+                          <div className="flex flex-col gap-2">
+                            {playbooks.map((pb) => (
+                              <button
+                                key={pb.id}
+                                onClick={() => setSelectedPlaybookId(pb.id)}
+                                className={`w-full text-left p-3 rounded-xl border text-xs transition-all ${
+                                  selectedPlaybookId === pb.id
+                                    ? `border-cyan-500 bg-cyan-500/5`
+                                    : `${curTheme.border} hover:${curTheme.surface} hover:border-slate-600`
+                                }`}
+                              >
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="font-mono text-[10px] text-slate-500">{pb.id}</span>
+                                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold border uppercase tracking-wider ${
+                                    pb.severity === 'Critical' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
+                                    pb.severity === 'High' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                                    'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                  }`}>
+                                    {pb.severity}
+                                  </span>
+                                </div>
+                                <h4 className={`font-bold ${curTheme.heading} mb-1`}>{pb.name}</h4>
+                                <p className={`text-[10px] ${curTheme.textMuted} line-clamp-1 mb-2`}>{pb.desc}</p>
+                                <div className="flex justify-between items-center text-[9px] text-slate-500 border-t border-slate-800/40 pt-1.5">
+                                  <span>Assigned: {pb.team}</span>
+                                  <span>Status: <span className={
+                                    pb.status === 'Running' ? 'text-cyan-400 font-bold animate-pulse' :
+                                    pb.status === 'Completed' ? 'text-emerald-500 font-bold' : 'text-slate-500'
+                                  }>{pb.status}</span></span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Side: Playbook Details & Steps */}
+                      <div className="lg:col-span-2 space-y-4">
+                        <div className={`${curTheme.surface} border ${curTheme.border} rounded-2xl p-6 shadow-xl space-y-6`}>
+                          {/* Playbook Header */}
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-700/30 pb-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <h3 className={`text-lg font-bold ${curTheme.heading}`}>{currentPlaybook.name}</h3>
+                                <span className={`text-[9px] font-mono px-2 py-0.5 rounded bg-black/25 text-slate-400 border border-slate-700/40`}>
+                                  {currentPlaybook.id}
+                                </span>
+                              </div>
+                              <p className={`text-xs ${curTheme.textMuted}`}>{currentPlaybook.desc}</p>
+                            </div>
+                            <button
+                              disabled={isRunningPlaybook || currentPlaybook.status === 'Running'}
+                              onClick={() => handleRunPlaybook(currentPlaybook.id)}
+                              className={`px-5 py-2.5 text-white font-bold text-xs rounded-xl shadow-lg transition-all active:scale-[0.98] shrink-0 ${
+                                isRunningPlaybook
+                                  ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                                  : config.primary === 'cyan' ? 'bg-cyan-500 hover:bg-cyan-400' : config.primary === 'emerald' ? 'bg-emerald-500 hover:bg-emerald-400' : config.primary === 'purple' ? 'bg-purple-500 hover:bg-purple-400' : 'bg-amber-500 hover:bg-amber-400'
+                              }`}
+                            >
+                              {isRunningPlaybook && currentPlaybook.status === 'Running' ? 'Executing SOAR...' : 'Run Playbook'}
+                            </button>
+                          </div>
+
+                          {/* Details Metadata grid */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                            <div className="space-y-1">
+                              <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider text-[9px]`}>Trigger Event</span>
+                              <span className={`font-semibold ${curTheme.heading}`}>{currentPlaybook.trigger}</span>
+                            </div>
+                            <div className="space-y-1">
+                              <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider text-[9px]`}>Responder Owner</span>
+                              <span className={`font-semibold ${curTheme.heading}`}>{currentPlaybook.team}</span>
+                            </div>
+                            <div className="space-y-1">
+                              <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider text-[9px]`}>Execution Severity</span>
+                              <span className={`font-semibold ${curTheme.heading}`}>{currentPlaybook.severity}</span>
+                            </div>
+                            <div className="space-y-1">
+                              <span className={`block font-bold ${curTheme.textMuted} uppercase tracking-wider text-[9px]`}>Last Automation Run</span>
+                              <span className={`font-semibold ${curTheme.heading}`}>
+                                {currentPlaybook.lastRun === 'Never' ? 'Never' : new Date(currentPlaybook.lastRun).toLocaleTimeString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Steps Process Checklist */}
+                          <div className="space-y-3">
+                            <h4 className={`text-xs font-bold uppercase tracking-wider ${curTheme.textMuted}`}>Automated Step Checklist</h4>
+                            
+                            <div className="space-y-2">
+                              {currentPlaybook.steps.map((step, idx) => {
+                                const isCurrent = isRunningPlaybook && currentPlaybook.status === 'Running' && idx === runningPlaybookStep;
+                                return (
+                                  <div
+                                    key={idx}
+                                    className={`p-3 rounded-xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
+                                      isCurrent
+                                        ? 'border-cyan-500 bg-cyan-500/5 shadow-inner'
+                                        : step.status === 'Completed'
+                                        ? `border-emerald-500/20 bg-emerald-500/[0.02]`
+                                        : `${curTheme.border} bg-black/5 opacity-60`
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      {/* Status marker */}
+                                      <div className={`h-5 w-5 rounded-full border flex items-center justify-center shrink-0 ${
+                                        step.status === 'Completed'
+                                          ? 'border-emerald-500 text-emerald-500 bg-emerald-500/10'
+                                          : isCurrent
+                                          ? 'border-cyan-500 text-cyan-500 animate-spin border-t-transparent'
+                                          : 'border-slate-700 text-slate-600'
+                                      }`}>
+                                        {step.status === 'Completed' ? '✓' : isCurrent ? '' : idx + 1}
+                                      </div>
+                                      
+                                      <div className="space-y-0.5">
+                                        <p className={`font-semibold ${curTheme.heading}`}>{step.label}</p>
+                                        <div className="flex gap-2 items-center text-[9px]">
+                                          <span className="px-1 py-0.2 rounded bg-black/30 text-slate-400 font-bold uppercase tracking-wider">{step.type}</span>
+                                          {step.note && <span className={`text-[10px] ${curTheme.textMuted}`} title={step.note}>{step.note}</span>}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Action card notes input */}
+                                    <div className="sm:max-w-xs w-full">
+                                      <input
+                                        type="text"
+                                        placeholder="Add analyst comment..."
+                                        value={step.note || ''}
+                                        onChange={e => handleUpdateStepNote(currentPlaybook.id, idx, e.target.value)}
+                                        className={`w-full bg-black/20 border ${curTheme.border} rounded px-2.5 py-1 text-[10px] focus:outline-none focus:ring-1 ${curColor.ring}`}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom: Playbook History Logs */}
+                    <div className={`${curTheme.surface} border ${curTheme.border} rounded-2xl overflow-hidden shadow-xl flex flex-col`}>
+                      <div className="p-4 border-b border-slate-700/30 flex justify-between items-center">
+                        <h3 className={`text-sm font-bold ${curTheme.heading}`}>Playbook Execution History</h3>
+                        <span className={`text-[10px] ${curTheme.textMuted}`}>Audit log of SOAR runs</span>
+                      </div>
+                      <div className="overflow-x-auto overflow-y-auto max-h-[300px]">
+                        <table className="w-full text-left text-xs whitespace-nowrap">
+                          <thead className={`bg-black/5 text-[10px] ${curTheme.textMuted} uppercase tracking-wider sticky top-0`}>
+                            <tr>
+                              <th className="px-5 py-3 font-semibold">Run ID</th>
+                              <th className="px-5 py-3 font-semibold">Playbook Name</th>
+                              <th className="px-5 py-3 font-semibold">Trigger Vector</th>
+                              <th className="px-5 py-3 font-semibold">Trigger Timestamp</th>
+                              <th className="px-5 py-3 font-semibold text-right">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className={`divide-y ${curTheme.border}`}>
+                            {playbookHistory.map((run, idx) => (
+                              <tr key={idx} className="hover:bg-black/5 transition-colors">
+                                <td className={`px-5 py-3 font-mono ${curTheme.text}`}>{run.id}</td>
+                                <td className={`px-5 py-3 font-semibold ${curTheme.text}`}>{run.name}</td>
+                                <td className={`px-5 py-3 text-slate-400 font-mono`}>{run.trigger}</td>
+                                <td className={`px-5 py-3 text-slate-500`}>{new Date(run.timestamp).toLocaleString()}</td>
+                                <td className="px-5 py-3 text-right">
+                                  <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border-emerald-500/20`}>
+                                    {run.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                  </div>
+                );
+              })()}
               {/* AI COPILOT / SOC ASSISTANT MODULE */}
               {activeTab === 'AI Copilot' && (
                 <div className="animate-in fade-in duration-500 h-full flex flex-col gap-6">
